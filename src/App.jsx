@@ -12,6 +12,11 @@ const VALID_FROM = "2025-01-01";
 const VALID_TO = "2015-12-31";
 const DEFAULT_COUNTRY = "NL";
 
+const dateFormat = {
+  day: "numeric",
+  month: "long",
+};
+
 function App() {
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [errorCountries, setErrorCountries] = useState(null);
@@ -46,17 +51,25 @@ function App() {
     }
   }
 
-  async function getHolidays(selectedCountry) {
+  async function getHolidays(countryCode) {
     try {
+      setLoadingHolidays(true);
+      setErrorHolidays(null);
+
       const res = await fetch(
-        `${API_BASE_URL}/PublicHolidays?countryIsoCode=${selectedCountry}&validFrom=${VALID_FROM}&validTo=${VALID_TO}&languageIsoCode=${LANGUAGE}`,
+        `${API_BASE_URL}/PublicHolidays?countryIsoCode=${countryCode}&validFrom=${VALID_FROM}&validTo=${VALID_TO}&languageIsoCode=${LANGUAGE}`,
       );
+
+      if (!res.ok) {
+        throw new Error();
+      }
 
       const data = await res.json();
       setHolidays(data);
     } catch {
-      setError("Failed to load holidays...");
+      setErrorHolidays("Error fetching holidays...");
     } finally {
+      setLoadingHolidays(false);
     }
   }
 
@@ -67,6 +80,24 @@ function App() {
   useEffect(() => {
     getCountries();
   }, []);
+
+  useEffect(() => {
+    if (countries.length === 0) return;
+
+    const defaultCountry = countries.find((c) => c.isoCode === DEFAULT_COUNTRY);
+
+    if (defaultCountry) {
+      setSelectedCountry(defaultCountry.isoCode);
+    } else {
+      setSelectedCountry(countries[0].isoCode);
+    }
+  }, [countries]);
+
+  useEffect(() => {
+    if (!selectedCountry) return;
+
+    getHolidays(selectedCountry);
+  }, [selectedCountry]);
 
   return (
     <div className="min-h-screen flex justify-center">
@@ -92,6 +123,8 @@ function App() {
         ) : (
           <div className="flex justify-center">
             <select
+              onChange={(e) => handleChange(e.target.value)}
+              value={selectedCountry}
               name="countries"
               className="px-4 py-2 border border-gray-300 rounded-md"
             >
@@ -102,6 +135,31 @@ function App() {
               ))}
             </select>
           </div>
+        )}
+
+        {loadingHolidays ? (
+          <div className="w-16 mx-auto">
+            <Loader />
+          </div>
+        ) : errorHolidays ? (
+          <div>
+            <Error message={errorHolidays} />
+          </div>
+        ) : holidays.length === 0 ? (
+          <div>
+            <NotFound message="Sorry, no holidays found." />
+          </div>
+        ) : (
+          <ul className="list-disc flex flex-col gap-4 px-8">
+            {holidays.map((item) => (
+              <li key={item.id}>
+                {new Intl.DateTimeFormat("ky-KG", dateFormat).format(
+                  new Date(item.startDate),
+                )}{" "}
+                - {item.name[0].text}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
