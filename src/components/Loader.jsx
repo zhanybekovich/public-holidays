@@ -1,6 +1,6 @@
 function Loader() {
   return (
-    <div>
+    <span>
       <svg
         fill="hsl(228, 97%, 42%)"
         viewBox="0 0 24 24"
@@ -148,7 +148,7 @@ function Loader() {
           />
         </g>
       </svg>
-    </div>
+    </span>
   );
 }
 
